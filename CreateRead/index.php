@@ -6,20 +6,14 @@ $name = $email = "";
 // ========== PART 2: SANITIZATION FUNCTION ==========
 function clean($data)
 {
-    // trim - remove any spaces/newlines from the start and end
-    // null coalescing -SAFE converts null to empty string
+    // Trim: remove spaces, tabs, newlines from the beginning and end of the string.
+    // The null coalescing operator (??) ensures we never pass null to trim,
+    // converting null to an empty string.
     $data = trim($data ?? "");
-    // Removes backslashes that were added to escape quotes/special characters
-    // Example: Converts "O\'Connor" to "O'Connor"
-    $data = stripslashes($data);
-    // Sanitize output: Prevent XSS, encode all quotes, UTF-8 safe
-    // Now it displays as TEXT, won't execute as script
-    // ENT_QUOTES: Encode both single and double quotes
-    // UTF-8: Ensure proper handling of international characters
-    $data = htmlspecialchars($data, ENT_QUOTES, 'UTF-8');
-    // With ENT_QUOTES:
-    // Result: <input value="&#039;; alert(&#039;HACKED!&#039;); //">
-    // SAFE! The ' becomes &#039; (just text, not code)
+
+    // No need for stripslashes() – modern PHP doesn’t add magic quotes.
+    // No need for htmlspecialchars() here – input data should be stored raw.
+    // Output escaping (to prevent XSS) will be done separately when displaying data.
     return $data;
 }
 
@@ -57,13 +51,15 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         // Step 3: Execute the query and check if successful
         // Returns true if successful, false if failed
         if ($stmt->execute()) {
-            // Success: Query ran without errors.
-            // Instead of using PHP's header() (which would cause "headers already sent" if we output anything first),
-            // we use JavaScript to show an alert and then redirect the browser.
-            // This approach:
-            // - Displays a success message to the user.
-            // - Redirects to the same page (GET request), preventing form resubmission on refresh.
-            // - Avoids any PHP header errors because the output (the JavaScript) is sent after the PHP block.
+            // window.location.href holds the current page URL.
+            // Assigning a new value makes the browser load that page immediately.
+            // Here we redirect to the exact same script using $_SERVER['PHP_SELF'].
+            // The PHP part: '" . $_SERVER['PHP_SELF'] . "' builds the URL string:
+            // - The outer quotes are part of the PHP string (echo).
+            // - Inside, we open a JavaScript string with a single quote.
+            // - Then we concatenate the PHP value ($_SERVER['PHP_SELF']).
+            // - Finally we close the JavaScript string with another single quote and a semicolon.
+            // The final JavaScript line becomes: window.location.href = '/current/script.php';
             echo "<script>
                 alert('User Added successfully!');   // Show the alert
                 window.location.href = '" . $_SERVER['PHP_SELF'] . "'; // Redirect after OK
@@ -151,6 +147,19 @@ $result = $conn->query("SELECT * FROM users");
                     - Read it like "Get one result at a time and assign it to $row".
             -->
             <?php while ($row = $result->fetch_assoc()) { ?>
+
+                <!-- 
+                ====================================================================
+                IMPORTANT: When to use htmlspecialchars()
+                - Use htmlspecialchars() EVERY time you output user-supplied data 
+                (or any data that might contain HTML characters) into an HTML context.
+                - Why? It converts characters like <, >, &, ", ' into HTML entities 
+                (e.g., < becomes &lt;). This prevents the browser from interpreting 
+                them as code, thus stopping Cross-Site Scripting (XSS) attacks.
+                - Always apply it at the moment of output, NOT before storing in DB.
+                ====================================================================
+                 -->
+                
                 <tr>
                     <!-- 
                      COLUMN: ID
