@@ -2,8 +2,6 @@
 // ========== PART 1: ALWAYS START WITH THESE ==========
 include "db.php";
 $name = $email = "";
-$success_message = "";
-$error_message = "";
 
 // ========== PART 2: SANITIZATION FUNCTION ==========
 function clean($data)
@@ -33,11 +31,11 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
     // 2. Simple validation
     if (empty($name) || empty($email)) {
-        $error_message = "<script>alert('Name and Email are required!')</script>";
+        echo "<script>alert('Name and Email are required!')</script>";
     } else if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
         // Validate email format using PHP's built-in filter
         // Returns false if email is invalid (missing @, bad domain, etc.)
-        $error_message = "<script>alert('Please enter a valid email address!')</script>";
+        echo "<script>alert('Please enter a valid email address!')</script>";
     } else {
         // 3. Prepared statement for security
         //prepare() separates CODE from DATA
@@ -59,10 +57,21 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         // Step 3: Execute the query and check if successful
         // Returns true if successful, false if failed
         if ($stmt->execute()) {
-            // Success: Query ran without errors
-            $success_message = "<script>alert('User Added successfully!')</script>";
-            //Clear form after success
-            $name = $email = "";
+            // Success: Query ran without errors.
+            // Instead of using PHP's header() (which would cause "headers already sent" if we output anything first),
+            // we use JavaScript to show an alert and then redirect the browser.
+            // This approach:
+            // - Displays a success message to the user.
+            // - Redirects to the same page (GET request), preventing form resubmission on refresh.
+            // - Avoids any PHP header errors because the output (the JavaScript) is sent after the PHP block.
+            echo "<script>
+                alert('User Added successfully!');   // Show the alert
+                window.location.href = '" . $_SERVER['PHP_SELF'] . "'; // Redirect after OK
+            </script>";
+
+            // Stop script execution – nothing else (like the HTML form or contact list) will be sent,
+            // because the browser will immediately follow the redirect after showing the alert.
+            exit;
 
         } else {
             //Failure: Check for specific errors
@@ -70,10 +79,12 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             //Think of 1062 as a "Data Quality Guardian"
             // Translation: "If $conn's error number is 1062"
             // 1062 = "email already exists"
+
             if ($conn->errno == 1062) {
-                $error_message = "<script>alert('This email is already registered!')</script>";
+                echo "<script>alert('This email is already registered!')</script>";
+                $email = "";
             } else {
-                $error_message = "<script>alert('Error adding user!')</script>";
+                echo "<script>alert('Error adding user!')</script>";
             }
         }
         // Always close prepared statements when done (prevents memory leaks)
@@ -86,6 +97,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 //MySQL, run this query!
 $result = $conn->query("SELECT * FROM users");
 ?>
+
 
 <!DOCTYPE html>
 <html lang="en">
@@ -139,16 +151,16 @@ $result = $conn->query("SELECT * FROM users");
                     - Read it like "Get one result at a time and assign it to $row".
             -->
             <?php while ($row = $result->fetch_assoc()) { ?>
-            <tr>
-                <!-- 
+                <tr>
+                    <!-- 
                      COLUMN: ID
                     - $row["id"]: Accesses the 'id' field from current row's data
                     - Equivalent to: "From the current record, get the value in the 'id' column"
                     - Column name must match database column name exactly
                     - Example: If current row has id=5, outputs "5"
                     -->
-                <td><?= htmlspecialchars($row["id"]); ?></td>
-                <!-- 
+                    <td><?= htmlspecialchars($row["id"]); ?></td>
+                    <!-- 
                         
                     COLUMN: NAME  
                     - $row["name"]: Accesses the 'name' field from current row
@@ -156,15 +168,15 @@ $result = $conn->query("SELECT * FROM users");
                     - htmlspecialchars(): Prevents XSS if name contains HTML characters
                     - Example: If current row has name="John", outputs "John"
                  -->
-                <td><?= htmlspecialchars($row["name"]); ?></td>
-                <!-- 
+                    <td><?= htmlspecialchars($row["name"]); ?></td>
+                    <!-- 
                     COLUMN EMAIL 
                     - $row["email"]: Accesses the 'email' field from current row
                     - Displays the user's email address for this record
                     - Example: If current row has email="john@example.com", outputs that
                 -->
-                <td><?= htmlspecialchars($row["email"]); ?></td>
-            </tr>
+                    <td><?= htmlspecialchars($row["email"]); ?></td>
+                </tr>
             <?php } ?>
         </table>
     <?php } else { ?>
@@ -176,7 +188,7 @@ $result = $conn->query("SELECT * FROM users");
         -->
         <p>No users found. Add your first user above!</p>
     <?php } ?>
-        <!-- 
+    <!-- 
         CONDITIONAL DISPLAY END
         - Clean separation of "has data" vs "no data" states
         - Only one branch executes based on $result->num_rows
@@ -187,12 +199,12 @@ $result = $conn->query("SELECT * FROM users");
 </html>
 
 <?php
-    // ========== DATABASE CLEANUP ==========
-    // 
-    // CLOSE DATABASE CONNECTION
-    // - Frees up database server resources
-    // - Prevents connection limit issues
-    // - Good practice even though PHP auto-closes at script end
-    // - Note: Should be after all database operations are complete
+// ========== DATABASE CLEANUP ==========
+// 
+// CLOSE DATABASE CONNECTION
+// - Frees up database server resources
+// - Prevents connection limit issues
+// - Good practice even though PHP auto-closes at script end
+// - Note: Should be after all database operations are complete
 $conn->close();
 ?>
