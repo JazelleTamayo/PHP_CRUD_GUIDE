@@ -60,10 +60,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             // - Then we concatenate the PHP value ($_SERVER['PHP_SELF']).
             // - Finally we close the JavaScript string with another single quote and a semicolon.
             // The final JavaScript line becomes: window.location.href = '/current/script.php';
-            echo "<script>
-                alert('User Added successfully!');   // Show the alert
-                window.location.href = '" . $_SERVER['PHP_SELF'] . "'; // Redirect after OK
-            </script>";
+            echo "<script>alert('Contacts Added Successfully!');</script>";
+            echo "<script>window.location.href='" . $_SERVER['PHP_SELF'] . "';</script>";
 
             // Stop script execution – nothing else (like the HTML form or contact list) will be sent,
             // because the browser will immediately follow the redirect after showing the alert.
@@ -217,3 +215,4 @@ $result = $conn->query("SELECT * FROM users");
 // - Note: Should be after all database operations are complete
 $conn->close();
 ?>
+
