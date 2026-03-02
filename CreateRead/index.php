@@ -20,8 +20,9 @@ function clean($data)
 // ========== PART 3: CREATE (CREATE ONLY!) ==========
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
     // 1. Clean inputs
-    $name = clean($_POST["name"]);
-    $email = clean($_POST["email"]);
+    // ?? "" means: use the form input if it exists, otherwise use an empty string (prevents undefined index warnings)
+    $name = clean($_POST["name"] ?? "");
+    $email = clean($_POST["email"] ?? "");
 
     // 2. Simple validation
     if (empty($name) || empty($email)) {
@@ -218,5 +219,6 @@ $result = $conn->query("SELECT * FROM users");
 // - Note: Should be after all database operations are complete
 $conn->close();
 ?>
+
 
 
