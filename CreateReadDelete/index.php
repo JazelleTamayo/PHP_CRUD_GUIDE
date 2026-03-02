@@ -194,6 +194,7 @@ $result = $conn->query("SELECT * FROM users");
                 <th>ID</th>
                 <th>Name</th>
                 <th>Email</th>
+                <th>Action</th>
             </tr>
             <!-- 
                     DATA ROW LOOP
@@ -282,4 +283,5 @@ $result = $conn->query("SELECT * FROM users");
 // - Good practice even though PHP auto-closes at script end
 // - Note: Should be after all database operations are complete
 $conn->close();
+
 ?>
