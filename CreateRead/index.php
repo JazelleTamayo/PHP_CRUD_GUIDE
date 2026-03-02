@@ -61,7 +61,10 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             // - Finally we close the JavaScript string with another single quote and a semicolon.
             // The final JavaScript line becomes: window.location.href = '/current/script.php';
             echo "<script>alert('Contacts Added Successfully!');</script>";
-            echo "<script>window.location.href='" . $_SERVER['PHP_SELF'] . "';</script>";
+            // Escape $_SERVER['PHP_SELF'] because users can add malicious code to the URL
+            // that could break out of this JavaScript string and cause XSS attacks.
+            // attackers can inject malicious code via the URL path.
+            echo "<script>window.location.href='" . htmlspecialchars($_SERVER['PHP_SELF'], ENT_QUOTES) . "';</script>"
 
             // Stop script execution – nothing else (like the HTML form or contact list) will be sent,
             // because the browser will immediately follow the redirect after showing the alert.
@@ -215,4 +218,5 @@ $result = $conn->query("SELECT * FROM users");
 // - Note: Should be after all database operations are complete
 $conn->close();
 ?>
+
 
