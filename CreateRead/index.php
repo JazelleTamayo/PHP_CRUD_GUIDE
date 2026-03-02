@@ -78,7 +78,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             // Translation: "If $conn's error number is 1062"
             // 1062 = "email already exists"
 
-            if ($conn->errno == 1062) {
+            if ($stmt->errno == 1062) {
                 echo "<script>alert('This email is already registered!')</script>";
                 $email = "";
             } else {
@@ -219,6 +219,7 @@ $result = $conn->query("SELECT * FROM users");
 // - Note: Should be after all database operations are complete
 $conn->close();
 ?>
+
 
 
 
