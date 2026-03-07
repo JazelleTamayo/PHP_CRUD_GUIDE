@@ -80,7 +80,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     // 2. Simple validation
     if (empty($name) || empty($email)) {
         echo "<script>alert('Name and Email are required!')</script>";
-    } else if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+    } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
         // Validate email format using PHP's built-in filter
         // Returns false if email is invalid (missing @, bad domain, etc.)
         echo "<script>alert('Please enter a valid email address!')</script>";
@@ -285,4 +285,5 @@ $result = $conn->query("SELECT * FROM users");
 $conn->close();
 
 ?>
+
 
