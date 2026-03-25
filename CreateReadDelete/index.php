@@ -247,7 +247,7 @@ $result = $conn->query("SELECT * FROM users");
                         <!-- Delete form for each user – sends the user's ID to PHP via POST -->
                         <form method="post" onsubmit="return confirm('Delete this user?');">
                             <!-- Hidden field stores the current user's ID from the database -->
-                            <input type="hidden" name="delete" value="<?= $row['id'] ?>">
+                            <input type="hidden" name="delete" value="<?= htmlspecialchars($row['id']) ?>">
                             <!-- Visible delete button -->
                             <input type="submit" value="Delete">
                         </form>
