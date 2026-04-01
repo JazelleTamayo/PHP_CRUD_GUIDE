@@ -1,6 +1,7 @@
 <?php
 // ========== PART 1: ALWAYS START WITH THESE ==========
 include "db.php";
+//Initialize variables
 $name = $email = "";
 
 // ========== PART 2: SANITIZATION FUNCTION ==========
@@ -25,14 +26,14 @@ function clean($data)
 // 1. Check if the form was submitted
 //    isset($_POST['delete']) means: "Is there a field called 'delete' in the POST data?"
 //    This will be true when the delete button is clicked.
-if (isset($_POST['delete'])) {
+if (isset($_POST['delete_btn'])) {
 
     // 2. Get the user ID from the form and make sure it's a number
-    //    $_POST['delete'] contains the value from the hidden input (like "5")
+    //    $_POST['id'] contains the value from the hidden input (like "5")
     //    We use (int) to cast it to an integer. This forces it to be a number.
     //    If someone tries to send text, it becomes 0 (which won't match any real user).
     //    This adds an extra layer of safety.
-    $id = (int) $_POST['delete'];
+    $id = (int) $_POST['id'];
 
     // 3. Prepare the DELETE statement
     //    We tell the database: "I want to delete a user, but I'll tell you which one later."
@@ -57,6 +58,7 @@ if (isset($_POST['delete'])) {
         // window.location.href changes the browser's current address to the same page.
         // $_SERVER['PHP_SELF'] gives the current script's filename (like "crud.php").
         // Escape $_SERVER['PHP_SELF'] because attackers can inject malicious code via the URL path.
+        // ENT_QUOTES escapes both single AND double quotes - prevents breaking out of the JavaScript string
         echo "<script>window.location.href='" . htmlspecialchars($_SERVER['PHP_SELF'], ENT_QUOTES) . "';</script>";
 
         // Stop the script immediately – don't send any more HTML or PHP output.
@@ -74,6 +76,7 @@ if (isset($_POST['delete'])) {
 // ========== PART 3: CREATE (CREATE ONLY!) ==========
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
     // 1. Clean inputs
+    // ?? "" means: use the form input if it exists, otherwise use an empty string (prevents undefined index warnings)
     $name = clean($_POST["name"] ?? "");
     $email = clean($_POST["email"] ?? "");
 
@@ -114,7 +117,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             // - Then we concatenate the PHP value ($_SERVER['PHP_SELF']).
             // - Finally we close the JavaScript string with another single quote and a semicolon.
             // The final JavaScript line becomes: window.location.href = '/current/script.php';
-            echo "<script>alert('Contacts Added Successfully!');</script>";
+            echo "<script>alert('User Added Successfully!');</script>";
 
             // Escape $_SERVER['PHP_SELF'] because users can add malicious code to the URL
             // that could break out of this JavaScript string and cause XSS attacks.
@@ -244,13 +247,14 @@ $result = $conn->query("SELECT * FROM users");
                     <td><?= htmlspecialchars($row["email"]); ?></td>
 
                     <td>
-                        <!-- Delete form for each user – sends the user's ID to PHP via POST -->
-                        <form method="post" onsubmit="return confirm('Delete this user?');">
-                            <!-- Hidden field stores the current user's ID from the database -->
-                            <input type="hidden" name="delete" value="<?= htmlspecialchars($row['id']) ?>">
-                            <!-- Visible delete button -->
-                            <input type="submit" value="Delete">
+                        <!-- Delete form for each user – sends the user ID to PHP via POST -->
+                        <form method="post" onsubmit="return confirm('Are you sure you want to delete this user?');">
+                            <!-- Hidden field stores the current user ID from the database -->
+                            <input type="hidden" name="id" value="<?= htmlspecialchars($row['id']); ?>">
+                            <!-- Visible delete button with clear action name -->
+                            <input type="submit" name="delete_btn" value="Delete">
                         </form>
+
                     </td>
                 </tr>
             <?php } ?>
@@ -283,7 +287,4 @@ $result = $conn->query("SELECT * FROM users");
 // - Good practice even though PHP auto-closes at script end
 // - Note: Should be after all database operations are complete
 $conn->close();
-
 ?>
-
-
