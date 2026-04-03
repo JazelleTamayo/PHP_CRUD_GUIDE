@@ -67,14 +67,11 @@ if (isset($_POST['delete_btn'])) {
     } else {
         // Something went wrong (database error, connection issue, etc.)
         echo "<script>alert('Error deleting user!');</script>";
-        // Same escaping needed here – even though it's not user input, the URL can be tampered with.
-        echo "<script>window.location.href='" . htmlspecialchars($_SERVER['PHP_SELF'], ENT_QUOTES) . "';</script>";
-        exit;
     }
 }
 
 // ========== PART 3: CREATE (CREATE ONLY!) ==========
-if ($_SERVER["REQUEST_METHOD"] == "POST") {
+if ($_SERVER["REQUEST_METHOD"] == "POST" && !isset($_POST['delete_btn'])) {
     // 1. Clean inputs
     // ?? "" means: use the form input if it exists, otherwise use an empty string (prevents undefined index warnings)
     $name = clean($_POST["name"] ?? "");
