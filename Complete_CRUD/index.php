@@ -7,8 +7,8 @@ $name = $email = "";
 // Tracks if we're editing a user
 // - null = We're adding a NEW user (shows "Add New User" form)
 // - 5, 10, etc. = We're editing EXISTING user with that ID (shows "Edit User" form)
-// Also prevents PHP warning about undefined variabl
-$edit_id = null;
+// Also prevents PHP warning about undefined variable when we first load the page without ?edit=ID
+$edit = null;
 
 // ========== PART 2: SANITIZATION FUNCTION ==========
 function clean($data)
@@ -112,6 +112,11 @@ if (isset($_POST['update_btn'])) {
             } else {
                 // Generic error for other database issues
                 echo "<script>alert('Error updating user!')</script>";
+                // ❌ NO redirect here
+                // ✅ Let the page stay so user can:
+                //    1. See the error message
+                //    2. Fix the problem
+                //    3. Try again
             }
         }
         // Always close prepared statements when done (prevents memory leaks)
@@ -168,14 +173,14 @@ if (isset($_POST['delete_btn'])) {
     } else {
         // Something went wrong (database error, connection issue, etc.)
         echo "<script>alert('Error deleting user!');</script>";
-        // Same escaping needed here – even though it's not user input, the URL can be tampered with.
-        echo "<script>window.location.href='" . htmlspecialchars($_SERVER['PHP_SELF'], ENT_QUOTES) . "';</script>";
-        exit;
     }
 }
 
 // ========== PART 5: CREATE (CREATE ONLY!) ==========
-if ($_SERVER["REQUEST_METHOD"] == "POST") {
+// Only runs for CREATE operations (Add New User)
+// Checks: It's a POST request AND not an update AND not a delete
+// This prevents the create code from running when we're updating or deleting
+if ($_SERVER["REQUEST_METHOD"] == "POST" && !isset($_POST['update_btn']) && !isset($_POST['delete_btn'])) {
     // 1. Clean inputs
     // ?? "" means: use the form input if it exists, otherwise use an empty string (prevents undefined index warnings)
     $name = clean($_POST["name"] ?? "");
@@ -238,7 +243,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
             if ($stmt->errno == 1062) {
                 echo "<script>alert('This email is already registered!')</script>";
-                $email = "";
             } else {
                 echo "<script>alert('Error adding user!')</script>";
             }
@@ -269,7 +273,9 @@ if (isset($_GET['edit'])) {
     //    We use (int) to cast it to an integer for safety
     //    If someone tries to send text, it becomes 0 (won't match any real user)
     //    This prevents SQL injection and invalid IDs
-    $edit_id = (int) $_GET['edit'];
+    //    $edit_id = "We are currently editing THIS user" (for the form)
+    //    Simple: $edit_id shows the form, $id saves the data
+    $edit = (int) $_GET['edit'];
 
     // 3. Prepare the SELECT statement
     //    We tell the database: "I want to get a user, but I'll tell you which one later."
@@ -279,28 +285,30 @@ if (isset($_GET['edit'])) {
 
     // 4. Bind the parameter
     //    "i" means integer - the database knows to treat $edit_id as a number
-    $stmt->bind_param("i", $edit_id);
+    $stmt->bind_param("i", $edit);
 
     // 5. Execute the query
     //    This runs the SELECT command and gets the user data
     $stmt->execute();
 
     // 6. Get the result set
-//    execute() only returns true/false. We need get_result() to actually retrieve the data.
+    //    execute() only returns true/false. We need get_result() to actually retrieve the data.
     $result = $stmt->get_result();
 
     // 7. Check if a user was found
     //    num_rows > 0 means: "Did we find a user with that ID?"
     if ($result->num_rows > 0) {
-        // 8. Fetch the user data into variables
-        //    $user becomes an array like: ['id'=>5, 'name'=>'John', 'email'=>'john@example.com']
-        $user = $result->fetch_assoc();
+
+        // 8. Fetch the user data into $row array
+        //    $row becomes an array like: ['id'=>5, 'name'=>'John', 'email'=>'john@example.com']
+        $row = $result->fetch_assoc();
 
         // 9. Populate the form fields with existing data
         //    These $name and $email variables will be used in the HTML form's "value" attributes
         //    This is what makes the form show the user's current information!
-        $name = $user['name'];   // Example: "John Doe" appears in name field
-        $email = $user['email']; // Example: "john@example.com" appears in email field
+        $name = $row['name'];   // Example: "John Doe" appears in name field
+        $email = $row['email']; // Example: "john@example.com" appears in email field
+
     }
     // 10. Close the statement (frees resources, prevents memory leaks)
     $stmt->close();
@@ -324,22 +332,22 @@ $result = $conn->query("SELECT * FROM users");
 
 <body>
     <!--This means:
-    - If $edit_id has a value → show "Edit User"
-    - If $edit_id is null → show "Add New User" -->
-    <h2><?= $edit_id ? 'Edit User' : 'Add New User'; ?></h2>
+    - If $edit has a value → show "Edit User"
+    - If $edit is null → show "Add New User" -->
+    <h2><?= $edit ? 'Edit User' : 'Add New User'; ?></h2>
 
     <form method="post" action="">
         <fieldset>
             <legend>Student Information</legend>
-            <?php if ($edit_id) { ?>
-                <input type="hidden" name="id" value="<?= $edit_id; ?>">
+            <?php if ($edit) { ?>
+                <input type="hidden" name="id" value="<?= $edit; ?>">
             <?php } ?>
             <label for="name">Name:</label>
             <input type="text" id="name" name="name" value="<?= htmlspecialchars($name); ?>" required><br><br>
             <label for="email">Email:</label>
             <input type="email" id="email" name="email" value="<?= htmlspecialchars($email); ?>" required><br><br>
             <!-- Buttons change based on mode: Edit mode shows Update + Cancel, Add mode shows Add User only -->
-            <?php if ($edit_id) { ?>
+            <?php if ($edit) { ?>
                 <!-- Edit mode: Show Update button - submits form to save changes -->
                 <input type="submit" name="update_btn" value="Update User">
                 <!-- Edit mode: Show Cancel link - reloads page to exit edit mode -->
