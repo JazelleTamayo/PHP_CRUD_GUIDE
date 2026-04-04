@@ -24,7 +24,7 @@ if (isset($_POST['delete'])) {
     }
 }
 
-if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+if ($_SERVER['REQUEST_METHOD'] == 'POST' && !isset($_POST['delete'])) {
     $product_name = clean($_POST['product_name'] ?? "");
     $price = clean($_POST['price'] ?? "");
     $quantity = clean($_POST['quantity'] ?? "");
