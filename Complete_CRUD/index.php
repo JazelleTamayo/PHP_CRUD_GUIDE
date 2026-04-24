@@ -46,8 +46,8 @@ if (isset($_POST['update_btn'])) {
 
     //    Clean the name and email using our sanitization function
     //    Removes extra spaces and handles null values
-    $name = clean($_POST["name"]);
-    $email = clean($_POST['email']);
+    $name = clean($_POST["name"] ?? "");
+    $email = clean($_POST['email'] ?? "");
 
     // ========== IMPORTANT: WHY VALIDATE AGAIN? ==========
     // Even though we already have validation in the CREATE section,
@@ -139,7 +139,7 @@ if (isset($_POST['delete_btn'])) {
     //    We use (int) to cast it to an integer. This forces it to be a number.
     //    If someone tries to send text, it becomes 0 (which won't match any real user).
     //    This adds an extra layer of safety.
-    $id = (int) $_POST['id'];
+    $id = (int) $_POST['id'] ?? 0;
 
     // 3. Prepare the DELETE statement
     //    We tell the database: "I want to delete a user, but I'll tell you which one later."
@@ -275,7 +275,7 @@ if (isset($_GET['edit'])) {
     //    This prevents SQL injection and invalid IDs
     //    $edit_id = "We are currently editing THIS user" (for the form)
     //    Simple: $edit_id shows the form, $id saves the data
-    $edit = (int) $_GET['edit'];
+    $edit = (int) $_GET['edit'] ?? 0;
 
     // 3. Prepare the SELECT statement
     //    We tell the database: "I want to get a user, but I'll tell you which one later."
