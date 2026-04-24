@@ -139,7 +139,7 @@ if (isset($_POST['delete_btn'])) {
     //    We use (int) to cast it to an integer. This forces it to be a number.
     //    If someone tries to send text, it becomes 0 (which won't match any real user).
     //    This adds an extra layer of safety.
-    $id = (int) $_POST['id'] ?? 0;
+    $id = (int) $_POST['id'];
 
     // 3. Prepare the DELETE statement
     //    We tell the database: "I want to delete a user, but I'll tell you which one later."
