@@ -46,8 +46,8 @@ if (isset($_POST['update_btn'])) {
 
     //    Clean the name and email using our sanitization function
     //    Removes extra spaces and handles null values
-    $name = clean($_POST["name"] ?? "");
-    $email = clean($_POST['email'] ?? "");
+    $name = clean($_POST["name"];
+    $email = clean($_POST['email'];
 
     // ========== IMPORTANT: WHY VALIDATE AGAIN? ==========
     // Even though we already have validation in the CREATE section,
@@ -275,7 +275,7 @@ if (isset($_GET['edit'])) {
     //    This prevents SQL injection and invalid IDs
     //    $edit_id = "We are currently editing THIS user" (for the form)
     //    Simple: $edit_id shows the form, $id saves the data
-    $edit = (int) $_GET['edit'] ?? 0;
+    $edit = (int) $_GET['edit'];
 
     // 3. Prepare the SELECT statement
     //    We tell the database: "I want to get a user, but I'll tell you which one later."
