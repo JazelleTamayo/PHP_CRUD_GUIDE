@@ -65,7 +65,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             // Escape $_SERVER['PHP_SELF'] because users can add malicious code to the URL
             // that could break out of this JavaScript string and cause XSS attacks.
             // attackers can inject malicious code via the URL path.
-            echo "<script>window.location.href='" . htmlspecialchars($_SERVER['PHP_SELF'], ENT_QUOTES) . "';</script>"
+            echo "<script>window.location.href='" . htmlspecialchars($_SERVER['PHP_SELF'], ENT_QUOTES) . "';</script>";
 
             // Stop script execution – nothing else (like the HTML form or contact list) will be sent,
             // because the browser will immediately follow the redirect after showing the alert.
