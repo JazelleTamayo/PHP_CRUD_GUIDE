@@ -114,6 +114,7 @@ $result = $conn->query("SELECT * FROM users");
         <fieldset>
             <legend>Student Information</legend>
             <label for="name">Name:</label>
+            <!--value is essential for persisting data between requests and for editing-->
             <input type="text" id="name" name="name" value="<?= htmlspecialchars($name); ?>" required><br><br>
             <label for="email">Email:</label>
             <input type="email" id="email" name="email" value="<?= htmlspecialchars($email); ?>" required><br><br>
