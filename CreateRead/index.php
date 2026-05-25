@@ -3,6 +3,18 @@
 include "db.php";
 $name = $email = "";
 
+// ========== HELPER FUNCTION FOR SAFE HTML OUTPUT ==========
+// Descriptive name: escape_html()
+// Converts special characters to HTML entities to prevent XSS attacks.
+// - ENT_QUOTES: escapes both double and single quotes
+// - ENT_SUBSTITUTE: replaces invalid UTF-8 sequences with � (safe)
+// - ENT_HTML5: uses HTML5 entity rules
+// - 'UTF-8': matches your page encoding (see meta charset)
+// Use this function EVERY time you output dynamic data inside HTML.
+function escape_html($string) {
+    return htmlspecialchars($string, ENT_QUOTES | ENT_SUBSTITUTE | ENT_HTML5, 'UTF-8');
+}
+
 // ========== PART 2: SANITIZATION FUNCTION ==========
 function clean($data)
 {
@@ -52,23 +64,12 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         // Step 3: Execute the query and check if successful
         // Returns true if successful, false if failed
         if ($stmt->execute()) {
-            // window.location.href holds the current page URL.
-            // Assigning a new value makes the browser load that page immediately.
-            // Here we redirect to the exact same script using $_SERVER['PHP_SELF'].
-            // The PHP part: '" . $_SERVER['PHP_SELF'] . "' builds the URL string:
-            // - The outer quotes are part of the PHP string (echo).
-            // - Inside, we open a JavaScript string with a single quote.
-            // - Then we concatenate the PHP value ($_SERVER['PHP_SELF']).
-            // - Finally we close the JavaScript string with another single quote and a semicolon.
-            // The final JavaScript line becomes: window.location.href = '/current/script.php';
+             json_encode() safely embeds a PHP string into JavaScript:
+        //   - Wraps in double quotes and escapes backslashes, quotes, etc.
+        //   - Unlike htmlspecialchars(), it does NOT convert & to &amp; (which would break URLs).
+        //   - Use escape_html() for HTML contexts (attributes, tags); use json_encode() for <script>.
             echo "<script>alert('Contacts Added Successfully!');</script>";
-            // Escape $_SERVER['PHP_SELF'] because users can add malicious code to the URL
-            // that could break out of this JavaScript string and cause XSS attacks.
-            // attackers can inject malicious code via the URL path.
-            echo "<script>window.location.href='" . htmlspecialchars($_SERVER['PHP_SELF'], ENT_QUOTES) . "';</script>";
-
-            // Stop script execution – nothing else (like the HTML form or contact list) will be sent,
-            // because the browser will immediately follow the redirect after showing the alert.
+            echo "<script>window.location.href=" . json_encode($_SERVER['PHP_SELF']) . ";</script>";
             exit;
 
         } else {
@@ -115,9 +116,9 @@ $result = $conn->query("SELECT * FROM users");
             <legend>Student Information</legend>
             <label for="name">Name:</label>
             <!--value is essential for persisting data between requests and for editing-->
-            <input type="text" id="name" name="name" value="<?= htmlspecialchars($name); ?>" required><br><br>
+            <input type="text" id="name" name="name" value="<?= escape_html($name); ?>" required><br><br>
             <label for="email">Email:</label>
-            <input type="email" id="email" name="email" value="<?= htmlspecialchars($email); ?>" required><br><br>
+            <input type="email" id="email" name="email" value="<?= escape_html($email); ?>" required><br><br>
             <input type="submit" value="submit">
         </fieldset>
     </form>
@@ -162,6 +163,7 @@ $result = $conn->query("SELECT * FROM users");
                 (e.g., < becomes &lt;). This prevents the browser from interpreting 
                 them as code, thus stopping Cross-Site Scripting (XSS) attacks.
                 - Always apply it at the moment of output, NOT before storing in DB.
+                - We now use the helper escape_html() which includes full escaping (ENT_QUOTES, UTF-8).
                 ====================================================================
                  -->
                 
@@ -173,7 +175,7 @@ $result = $conn->query("SELECT * FROM users");
                     - Column name must match database column name exactly
                     - Example: If current row has id=5, outputs "5"
                     -->
-                    <td><?= htmlspecialchars($row["id"]); ?></td>
+                    <td><?= escape_html($row["id"]); ?></td>
                     <!-- 
                         
                     COLUMN: NAME  
@@ -182,14 +184,14 @@ $result = $conn->query("SELECT * FROM users");
                     - htmlspecialchars(): Prevents XSS if name contains HTML characters
                     - Example: If current row has name="John", outputs "John"
                  -->
-                    <td><?= htmlspecialchars($row["name"]); ?></td>
+                    <td><?= escape_html($row["name"]); ?></td>
                     <!-- 
                     COLUMN EMAIL 
                     - $row["email"]: Accesses the 'email' field from current row
                     - Displays the user's email address for this record
                     - Example: If current row has email="john@example.com", outputs that
                 -->
-                    <td><?= htmlspecialchars($row["email"]); ?></td>
+                    <td><?= escape_html($row["email"]); ?></td>
                 </tr>
             <?php } ?>
         </table>
@@ -222,8 +224,3 @@ $result = $conn->query("SELECT * FROM users");
 // - Note: Should be after all database operations are complete
 $conn->close();
 ?>
-
-
-
-
-
