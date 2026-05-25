@@ -71,6 +71,7 @@ if (isset($_POST['delete_btn'])) {
         // Something went wrong (database error, connection issue, etc.)
         echo "<script>alert('Error deleting user!');</script>";
     }
+    $stmt->close();
 }
 
 // ========== PART 3: CREATE (CREATE ONLY!) ==========
