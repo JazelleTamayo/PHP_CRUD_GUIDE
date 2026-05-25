@@ -66,7 +66,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         // Returns true if successful, false if failed
         if ($stmt->execute()) {
         //   json_encode() safely embeds a PHP string into JavaScript:
-        //   - Wraps in double quotes and escapes backslashes, quotes, etc.
+        / json_encode() wraps string in double quotes and escapes ", \, /, \n, \t, etc.
+        // It does NOT convert & or ' – safe for URLs inside JavaScript.
         //   - Unlike htmlspecialchars(), it does NOT convert & to &amp; (which would break URLs).
         //   - Use escape_html() for HTML contexts (attributes, tags); use json_encode() for <script>.
             echo "<script>alert('Contacts Added Successfully!');</script>";
