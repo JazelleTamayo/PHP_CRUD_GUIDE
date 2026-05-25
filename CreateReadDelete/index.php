@@ -255,7 +255,7 @@ $result = $conn->query("SELECT * FROM users");
                             <!-- Visible delete button with clear action name -->
                             <input type="submit" name="delete_btn" value="Delete">
                         </form>
-                    </td
+                    </td>
                 </table>
             <?php } ?>
         </table>
