@@ -4,6 +4,13 @@ include "db.php";
 //Initialize variables
 $name = $email = "";
 
+// ========== HELPER FUNCTION FOR SAFE HTML OUTPUT ==========
+// Use this function EVERY time you output dynamic data inside HTML.
+// Parameter: $data - any scalar value (string, int, float, bool, or null)
+function escape_html($data) {
+    return htmlspecialchars($data, ENT_QUOTES | ENT_SUBSTITUTE | ENT_HTML5, 'UTF-8');
+}
+
 // ========== PART 2: SANITIZATION FUNCTION ==========
 function clean($data)
 {
@@ -20,12 +27,10 @@ function clean($data)
 
 // ========== DELETE (POST) ==========
 // This part runs when someone clicks the "Delete" button inside a form.
-// The form sends a POST request with a hidden input named "delete"
-// that contains the ID of the user to delete.
+// The form sends a POST request with a hidden input named "id"
+// that contains the ID of the user to delete, and a submit button named "delete_btn".
 
-// 1. Check if the form was submitted
-//    isset($_POST['delete']) means: "Is there a field called 'delete' in the POST data?"
-//    This will be true when the delete button is clicked.
+// 1. Check if the delete button was clicked
 if (isset($_POST['delete_btn'])) {
 
     // 2. Get the user ID from the form and make sure it's a number
@@ -54,12 +59,10 @@ if (isset($_POST['delete_btn'])) {
         // Success! Show a popup message.
         echo "<script>alert('User deleted!');</script>";
 
-        /// Then reload the page.
-        // window.location.href changes the browser's current address to the same page.
-        // $_SERVER['PHP_SELF'] gives the current script's filename (like "crud.php").
-        // Escape $_SERVER['PHP_SELF'] because attackers can inject malicious code via the URL path.
-        // ENT_QUOTES escapes both single AND double quotes - prevents breaking out of the JavaScript string
-        echo "<script>window.location.href='" . htmlspecialchars($_SERVER['PHP_SELF'], ENT_QUOTES) . "';</script>";
+        // Then reload the page using json_encode for a safe JavaScript string.
+        // json_encode() wraps the URL in double quotes and escapes any dangerous characters.
+        // This is safer than htmlspecialchars() inside <script>.
+        echo "<script>window.location.href=" . json_encode($_SERVER['PHP_SELF']) . ";</script>";
 
         // Stop the script immediately – don't send any more HTML or PHP output.
         // The browser already got the redirect instruction.
@@ -71,6 +74,7 @@ if (isset($_POST['delete_btn'])) {
 }
 
 // ========== PART 3: CREATE (CREATE ONLY!) ==========
+// This block runs when the form is submitted AND the delete button was NOT clicked.
 if ($_SERVER["REQUEST_METHOD"] == "POST" && !isset($_POST['delete_btn'])) {
     // 1. Clean inputs
     // ?? "" means: use the form input if it exists, otherwise use an empty string (prevents undefined index warnings)
@@ -116,10 +120,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && !isset($_POST['delete_btn'])) {
             // The final JavaScript line becomes: window.location.href = '/current/script.php';
             echo "<script>alert('User Added Successfully!');</script>";
 
-            // Escape $_SERVER['PHP_SELF'] because users can add malicious code to the URL
-            // that could break out of this JavaScript string and cause XSS attacks.
-            // attackers can inject malicious code via the URL path.
-            echo "<script>window.location.href='" . htmlspecialchars($_SERVER['PHP_SELF'], ENT_QUOTES) . "';</script>";
+            // Use json_encode for safe JavaScript redirect (handles all special characters).
+            echo "<script>window.location.href=" . json_encode($_SERVER['PHP_SELF']) . ";</script>";
 
             // Stop script execution – nothing else (like the HTML form or contact list) will be sent,
             // because the browser will immediately follow the redirect after showing the alert.
@@ -157,7 +159,7 @@ $result = $conn->query("SELECT * FROM users");
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CreateRead</title>
+    <title>CreateReadDelete</title>
 </head>
 
 <body>
@@ -166,9 +168,9 @@ $result = $conn->query("SELECT * FROM users");
         <fieldset>
             <legend>Student Information</legend>
             <label for="name">Name:</label>
-            <input type="text" id="name" name="name" value="<?= htmlspecialchars($name); ?>" required><br><br>
+            <input type="text" id="name" name="name" value="<?= escape_html($name); ?>" required><br><br>
             <label for="email">Email:</label>
-            <input type="email" id="email" name="email" value="<?= htmlspecialchars($email); ?>" required><br><br>
+            <input type="email" id="email" name="email" value="<?= escape_html($email); ?>" required><br><br>
             <input type="submit" value="submit">
         </fieldset>
     </form>
@@ -214,6 +216,7 @@ $result = $conn->query("SELECT * FROM users");
                 (e.g., < becomes &lt;). This prevents the browser from interpreting 
                 them as code, thus stopping Cross-Site Scripting (XSS) attacks.
                 - Always apply it at the moment of output, NOT before storing in DB.
+                - We now use the helper escape_html() which includes full escaping (ENT_QUOTES, UTF-8).
                 ====================================================================
                  -->
 
@@ -225,7 +228,7 @@ $result = $conn->query("SELECT * FROM users");
                     - Column name must match database column name exactly
                     - Example: If current row has id=5, outputs "5"
                     -->
-                    <td><?= htmlspecialchars($row["id"]); ?></td>
+                    <td><?= escape_html($row["id"]); ?></td>
                     <!-- 
                         
                     COLUMN: NAME  
@@ -234,26 +237,25 @@ $result = $conn->query("SELECT * FROM users");
                     - htmlspecialchars(): Prevents XSS if name contains HTML characters
                     - Example: If current row has name="John", outputs "John"
                  -->
-                    <td><?= htmlspecialchars($row["name"]); ?></td>
+                    <td><?= escape_html($row["name"]); ?></td>
                     <!-- 
                     COLUMN EMAIL 
                     - $row["email"]: Accesses the 'email' field from current row
                     - Displays the user's email address for this record
                     - Example: If current row has email="john@example.com", outputs that
                 -->
-                    <td><?= htmlspecialchars($row["email"]); ?></td>
+                    <td><?= escape_html($row["email"]); ?></td>
 
                     <td>
                         <!-- Delete form for each user – sends the user ID to PHP via POST -->
                         <form method="post" onsubmit="return confirm('Are you sure you want to delete this user?');">
                             <!-- Hidden field stores the current user ID from the database -->
-                            <input type="hidden" name="id" value="<?= htmlspecialchars($row['id']); ?>">
+                            <input type="hidden" name="id" value="<?= escape_html($row['id']); ?>">
                             <!-- Visible delete button with clear action name -->
                             <input type="submit" name="delete_btn" value="Delete">
                         </form>
-
-                    </td>
-                </tr>
+                    </td
+                </table>
             <?php } ?>
         </table>
     <?php } else { ?>
