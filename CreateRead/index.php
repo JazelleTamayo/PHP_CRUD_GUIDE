@@ -1,4 +1,4 @@
-<?php
+<<?php
 // ========== PART 1: ALWAYS START WITH THESE ==========
 include "db.php";
 $name = $email = "";
@@ -11,8 +11,9 @@ $name = $email = "";
 // - ENT_HTML5: uses HTML5 entity rules
 // - 'UTF-8': matches your page encoding (see meta charset)
 // Use this function EVERY time you output dynamic data inside HTML.
-function escape_html($string) {
-    return htmlspecialchars($string, ENT_QUOTES | ENT_SUBSTITUTE | ENT_HTML5, 'UTF-8');
+// Parameter: $data - any scalar value (string, int, float, bool, or null)
+function escape_html($data) {
+    return htmlspecialchars($data, ENT_QUOTES | ENT_SUBSTITUTE | ENT_HTML5, 'UTF-8');
 }
 
 // ========== PART 2: SANITIZATION FUNCTION ==========
