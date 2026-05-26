@@ -4,15 +4,15 @@ include "db.php";
 //Initialize variables
 $name = $email = "";
 // ========== EDIT MODE FLAG ==========
-// $editId tells the form whether we're adding a new user or editing an existing one:
+// $edit tells the form whether we're adding a new user or editing an existing one:
 //
-// - When $editId = null   → The form is in "Add New User" mode (empty fields).
-// - When $editId = 5, 10, etc. → The form is in "Edit User" mode (fills fields with that user's data).
+// - When $edit = null   → The form is in "Add New User" mode (empty fields).
+// - When $edit = 5, 10, etc. → The form is in "Edit User" mode (fills fields with that user's data).
 //
 // Why initialize it as null?
 // - Prevents PHP "undefined variable" warning when the page loads without ?edit=ID in the URL.
-// - Makes it easy to check: "if ($editId)" means we're editing; "if (!$editId)" means we're adding.
-$editId = null;
+// - Makes it easy to check: "if ($edit)" means we're editing; "if (!$edit)" means we're adding.
+$edit = null;
 
 // ========== HELPER FUNCTION FOR SAFE HTML OUTPUT ==========
 // Use this function EVERY time you output dynamic data inside HTML.
@@ -149,7 +149,7 @@ if (isset($_GET['edit'])) {
     //    We use (int) to cast it to an integer for safety
     //    If someone tries to send text, it becomes 0 (won't match any real user)
     //    This prevents SQL injection and invalid IDs
-    $editId = (int) $_GET['edit'];
+    $edit = (int) $_GET['edit'];   // Now $edit holds the ID
 
     // 3. Prepare the SELECT statement
     //    We tell the database: "I want to get a user, but I'll tell you which one later."
@@ -158,8 +158,8 @@ if (isset($_GET['edit'])) {
     $stmt = $conn->prepare("SELECT * FROM users WHERE id = ?");
 
     // 4. Bind the parameter
-    //    "i" means integer - the database knows to treat $editId as a number
-    $stmt->bind_param("i", $editId);
+    //    "i" means integer - the database knows to treat $edit as a number
+    $stmt->bind_param("i", $edit);
 
     // 5. Execute the query
     //    This runs the SELECT command and gets the user data
@@ -203,20 +203,20 @@ $result = $conn->query("SELECT * FROM users");
 </head>
 
 <body>
-    <h2><?= $editId ? 'Edit User' : 'Add New User'; ?></h2>
+    <h2><?= $edit ? 'Edit User' : 'Add New User'; ?></h2>
 
     <form method="post" action="">
         <fieldset>
             <legend>Student Information</legend>
-            <?php if ($editId) { ?>
-                <input type="hidden" name="id" value="<?= escape_html($editId); ?>">
+            <?php if ($edit) { ?>
+                <input type="hidden" name="id" value="<?= escape_html($edit); ?>">
             <?php } ?>
             <label for="name">Name:</label>
             <input type="text" id="name" name="name" value="<?= escape_html($name); ?>" required><br><br>
             <label for="email">Email:</label>
             <input type="email" id="email" name="email" value="<?= escape_html($email); ?>" required><br><br>
 
-            <?php if ($editId) { ?>
+            <?php if ($edit) { ?>
                 <input type="submit" name="update_btn" value="Update User">
                 <a href="<?= escape_html($_SERVER['PHP_SELF']); ?>">Cancel</a>
             <?php } else { ?>
