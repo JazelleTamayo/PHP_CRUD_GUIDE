@@ -3,6 +3,12 @@
 include "db.php";
 //Initialize variables
 $name = $email = "";
+// Initialize edit mode flag
+// Tracks if we're editing a user
+// - null = We're adding a NEW user (shows "Add New User" form)
+// - 5, 10, etc. = We're editing EXISTING user with that ID (shows "Edit User" form)
+// Also prevents PHP warning about undefined variable when we first load the page without ?edit=ID
+$edit = null;
 
 // ========== HELPER FUNCTION FOR SAFE HTML OUTPUT ==========
 // Use this function EVERY time you output dynamic data inside HTML.
@@ -25,12 +31,112 @@ function clean($data)
     return $data;
 }
 
-// ========== DELETE (POST) ==========
-// This part runs when someone clicks the "Delete" button inside a form.
-// The form sends a POST request with a hidden input named "id"
-// that contains the ID of the user to delete, and a submit button named "delete_btn".
 
-// 1. Check if the delete button was clicked
+// ========== PART 3: UPDATE ==========
+// This part runs when someone clicks the "Update" button inside the edit form.
+// The form sends a POST request with:
+//   - Hidden input named "id" (contains the user ID to update)
+//   - Text input named "name" (contains the new name)
+//   - Text input named "email" (contains the new email)
+//   - Submit button named "update_btn" (identifies this as an update action)
+
+// 1. Check if the update button was clicked
+//    isset($_POST['update_btn']) means: "Was the Update button clicked?"
+//    This distinguishes update requests from create or delete requests
+if (isset($_POST['update_btn'])) {
+
+    // 2. Get the data from the form
+    //    $_POST['id'] contains the hidden input with the user ID (like "5")
+    //    We use (int) to cast it to an integer for safety
+    //    If someone tries to send text, it becomes 0 (won't match any real user)
+    $id = (int) $_POST['id'];
+
+    //    Clean the name and email using our sanitization function
+    //    Removes extra spaces and handles null values
+    $name = clean($_POST["name"] ?? "");
+    $email = clean($_POST['email'] ?? "");
+
+    // ========== IMPORTANT: WHY VALIDATE AGAIN? ==========
+    // Even though we already have validation in the CREATE section,
+    // we MUST validate again here for these reasons:
+    //
+    // 1. DIFFERENT CONTEXT: The update form is a separate request.
+    //    The CREATE validation ran on a different request (when user was added).
+    //    PHP doesn't remember previous validations - each request is independent.
+    //
+    // 2. USER COULD BYPASS: A user could modify the HTML or use browser tools
+    //    to submit invalid data directly to update_btn without ever using the
+    //    create form. Validation must happen on EVERY submission.
+    //
+    // 3. SECURITY: Never trust user input, even if it passed validation before.
+    //    Always validate the data you're about to use in THIS request.
+    //
+    // 4. DATA MIGHT CHANGE: The email that was valid when added might now
+    //    conflict with another user's email during update.
+
+    // 3. Validate the inputs (REQUIRED even though create already validated)
+    if (empty($name) || empty($email)) {
+        echo "<script>alert('Name and Email are required!')</script>";
+    } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        // Validate email format using PHP's built-in filter
+        // Returns false if email is invalid (missing @, bad domain, etc.)
+        echo "<script>alert('Please enter a valid email address!')</script>";
+    } else {
+        // 4. Prepare the UPDATE statement
+        //    We tell the database: "I want to update a user, but I'll tell you which one and what values later."
+        //    The "?" are placeholders. This separates SQL code from data,
+        //    which prevents SQL injection attacks.
+        $stmt = $conn->prepare("UPDATE users SET name = ?, email = ? WHERE id = ?");
+
+        // 5. Bind the parameters
+        //    "ssi" means: string, string, integer (name, email, id)
+        //    The database knows to treat each parameter as its correct data type
+        $stmt->bind_param("ssi", $name, $email, $id);
+
+        // 6. Execute the query
+        //    This actually runs the UPDATE command.
+        //    If it works, $stmt->execute() returns true.
+        //    If something goes wrong, it returns false.
+        if ($stmt->execute()) {
+            // Success! Show a popup message.
+            echo "<script>alert('User updated successfully!');</script>";
+
+            // Then reload the page to show the updated list
+            // Use json_encode for safe JavaScript redirect (handles all special characters).
+            echo "<script>window.location.href=" . json_encode($_SERVER['PHP_SELF']) . ";</script>";
+            exit; // Stop script - don't display anything else
+        } else {
+            // 7. Handle database errors
+            //    Check for duplicate email error
+            //    1062 is MySQL's error code for duplicate entry (unique constraint violation)
+            if ($stmt->errno == 1062) {
+                echo "<script>alert('This email is already registered!')</script>";
+                // Note: We DON'T clear $email here like in CREATE
+                // In UPDATE mode, we keep the email so user can see what they tried
+                // and modify it to a unique value
+            } else {
+                // Generic error for other database issues
+                echo "<script>alert('Error updating user!')</script>";
+                // ❌ NO redirect here
+                // ✅ Let the page stay so user can:
+                //    1. See the error message
+                //    2. Fix the problem
+                //    3. Try again
+            }
+        }
+        // Always close prepared statements when done (prevents memory leaks)
+        $stmt->close();
+    }
+}
+
+// ========== PART 4: DELETE (POST) ==========
+// This part runs when someone clicks the "Delete" button inside a form.
+// The form sends a POST request with a hidden input named "delete"
+// that contains the ID of the user to delete.
+
+// 1. Check if the form was submitted
+//    isset($_POST['delete']) means: "Is there a field called 'delete' in the POST data?"
+//    This will be true when the delete button is clicked.
 if (isset($_POST['delete_btn'])) {
 
     // 2. Get the user ID from the form and make sure it's a number
@@ -60,8 +166,6 @@ if (isset($_POST['delete_btn'])) {
         echo "<script>alert('User deleted!');</script>";
 
         // Then reload the page using json_encode for a safe JavaScript string.
-        // json_encode() wraps the URL in double quotes and escapes any dangerous characters.
-        // This is safer than htmlspecialchars() inside <script>.
         echo "<script>window.location.href=" . json_encode($_SERVER['PHP_SELF']) . ";</script>";
 
         // Stop the script immediately – don't send any more HTML or PHP output.
@@ -71,12 +175,13 @@ if (isset($_POST['delete_btn'])) {
         // Something went wrong (database error, connection issue, etc.)
         echo "<script>alert('Error deleting user!');</script>";
     }
-    $stmt->close();
 }
 
-// ========== PART 3: CREATE (CREATE ONLY!) ==========
-// This block runs when the form is submitted AND the delete button was NOT clicked.
-if ($_SERVER["REQUEST_METHOD"] == "POST" && !isset($_POST['delete_btn'])) {
+// ========== PART 5: CREATE (CREATE ONLY!) ==========
+// Only runs for CREATE operations (Add New User)
+// Checks: It's a POST request AND not an update AND not a delete
+// This prevents the create code from running when we're updating or deleting
+if ($_SERVER["REQUEST_METHOD"] == "POST" && !isset($_POST['update_btn']) && !isset($_POST['delete_btn'])) {
     // 1. Clean inputs
     // ?? "" means: use the form input if it exists, otherwise use an empty string (prevents undefined index warnings)
     $name = clean($_POST["name"] ?? "");
@@ -113,12 +218,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && !isset($_POST['delete_btn'])) {
             // window.location.href holds the current page URL.
             // Assigning a new value makes the browser load that page immediately.
             // Here we redirect to the exact same script using $_SERVER['PHP_SELF'].
-            // The PHP part: '" . $_SERVER['PHP_SELF'] . "' builds the URL string:
-            // - The outer quotes are part of the PHP string (echo).
-            // - Inside, we open a JavaScript string with a single quote.
-            // - Then we concatenate the PHP value ($_SERVER['PHP_SELF']).
-            // - Finally we close the JavaScript string with another single quote and a semicolon.
-            // The final JavaScript line becomes: window.location.href = '/current/script.php';
             echo "<script>alert('User Added Successfully!');</script>";
 
             // Use json_encode for safe JavaScript redirect (handles all special characters).
@@ -137,7 +236,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && !isset($_POST['delete_btn'])) {
 
             if ($stmt->errno == 1062) {
                 echo "<script>alert('This email is already registered!')</script>";
-                $email = "";
             } else {
                 echo "<script>alert('Error adding user!')</script>";
             }
@@ -147,7 +245,69 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && !isset($_POST['delete_btn'])) {
     }
 
 }
-// ========== PART 4: READ DATA ==========
+
+// ========== PART 6: EDIT (GET) ==========
+// This part runs when someone clicks the "Edit" link next to a user.
+// The link sends a GET request with "?edit=ID" in the URL (like "?edit=5").
+// 
+// WHY GET? (Not POST)
+// - GET is for READING data (doesn't change anything in database)
+// - POST is for WRITING data (create, update, delete)
+// - Edit just FETCHES existing data to display in the form
+// - The actual UPDATE (saving changes) uses POST later
+
+// 1. Check if an edit request was made
+//    isset($_GET['edit']) means: "Is there '?edit=something' in the URL?"
+//    This will be true when someone clicks the Edit link
+if (isset($_GET['edit'])) {
+
+    // 2. Get the user ID from the URL and make sure it's a number
+    //    $_GET['edit'] contains the ID from the URL (like "5")
+    //    We use (int) to cast it to an integer for safety
+    //    If someone tries to send text, it becomes 0 (won't match any real user)
+    //    This prevents SQL injection and invalid IDs
+    //    $edit_id = "We are currently editing THIS user" (for the form)
+    //    Simple: $edit_id shows the form, $id saves the data
+    $edit = (int) $_GET['edit'];
+
+    // 3. Prepare the SELECT statement
+    //    We tell the database: "I want to get a user, but I'll tell you which one later."
+    //    The "?" is a placeholder for the ID
+    //    This separates SQL code from data, preventing SQL injection
+    $stmt = $conn->prepare("SELECT * FROM users WHERE id = ?");
+
+    // 4. Bind the parameter
+    //    "i" means integer - the database knows to treat $edit_id as a number
+    $stmt->bind_param("i", $edit);
+
+    // 5. Execute the query
+    //    This runs the SELECT command and gets the user data
+    $stmt->execute();
+
+    // 6. Get the result set
+    //    execute() only returns true/false. We need get_result() to actually retrieve the data.
+    $result = $stmt->get_result();
+
+    // 7. Check if a user was found
+    //    num_rows > 0 means: "Did we find a user with that ID?"
+    if ($result->num_rows > 0) {
+
+        // 8. Fetch the user data into $row array
+        //    $row becomes an array like: ['id'=>5, 'name'=>'John', 'email'=>'john@example.com']
+        $row = $result->fetch_assoc();
+
+        // 9. Populate the form fields with existing data
+        //    These $name and $email variables will be used in the HTML form's "value" attributes
+        //    This is what makes the form show the user's current information!
+        $name = $row['name'];   // Example: "John Doe" appears in name field
+        $email = $row['email']; // Example: "john@example.com" appears in email field
+
+    }
+    // 10. Close the statement (frees resources, prevents memory leaks)
+    $stmt->close();
+}
+
+// ========== PART 7: READ DATA ==========
 // Execute SELECT query to get all users
 //MySQL, run this query!
 $result = $conn->query("SELECT * FROM users");
@@ -160,19 +320,37 @@ $result = $conn->query("SELECT * FROM users");
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CreateReadDelete</title>
+    <title>CRUD - Create Read Update Delete</title>
 </head>
 
 <body>
-    <h2>Add New Record</h2>
+    <!--This means:
+    - If $edit has a value → show "Edit User"
+    - If $edit is null → show "Add New User" -->
+    <h2><?= $edit ? 'Edit User' : 'Add New User'; ?></h2>
+
     <form method="post" action="">
         <fieldset>
             <legend>Student Information</legend>
+            <?php if ($edit) { ?>
+                <input type="hidden" name="id" value="<?= escape_html($edit); ?>">
+            <?php } ?>
             <label for="name">Name:</label>
             <input type="text" id="name" name="name" value="<?= escape_html($name); ?>" required><br><br>
             <label for="email">Email:</label>
             <input type="email" id="email" name="email" value="<?= escape_html($email); ?>" required><br><br>
-            <input type="submit" value="submit">
+            <!-- Buttons change based on mode: Edit mode shows Update + Cancel, Add mode shows Add User only -->
+            <?php if ($edit) { ?>
+                <!-- Edit mode: Show Update button - submits form to save changes -->
+                <input type="submit" name="update_btn" value="Update User">
+                <!-- Edit mode: Show Cancel link - reloads page to exit edit mode -->
+                <a href="<?= escape_html($_SERVER['PHP_SELF']); ?>">Cancel</a>
+                <!-- If NOT in edit mode (null) -->
+            <?php } else { ?>
+                <!-- Add mode: Show Add User button only -->
+                <input type="submit" value="Add User">
+                <!-- End of if/else -->
+            <?php } ?>
         </fieldset>
     </form>
 
@@ -248,6 +426,9 @@ $result = $conn->query("SELECT * FROM users");
                     <td><?= escape_html($row["email"]); ?></td>
 
                     <td>
+                        <!-- Edit link for each user -->
+                        <a href="?edit=<?= escape_html($row['id']); ?>">Edit</a>
+
                         <!-- Delete form for each user – sends the user ID to PHP via POST -->
                         <form method="post" onsubmit="return confirm('Are you sure you want to delete this user?');">
                             <!-- Hidden field stores the current user ID from the database -->
@@ -255,8 +436,9 @@ $result = $conn->query("SELECT * FROM users");
                             <!-- Visible delete button with clear action name -->
                             <input type="submit" name="delete_btn" value="Delete">
                         </form>
-                    </td>
-                </table>
+
+                    </td
+                </tr>
             <?php } ?>
         </table>
     <?php } else { ?>
