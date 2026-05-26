@@ -49,7 +49,7 @@ if (isset($_POST['update_btn']) && !isset($_POST['delete_btn'])) {
 
     // 2. Get the data from the form
     $id = (int) $_POST['id'];
-    $name = clean($_POST["name"] ?? "");
+    $name = clean($_POST['name'] ?? "");
     $email = clean($_POST['email'] ?? "");
 
     // 3. Validate the inputs
