@@ -3,11 +3,15 @@
 include "db.php";
 //Initialize variables
 $name = $email = "";
-// Initialize edit mode flag
-// Tracks if we're editing a user
-// - null = We're adding a NEW user (shows "Add New User" form)
-// - 5, 10, etc. = We're editing EXISTING user with that ID (shows "Edit User" form)
-// Also prevents PHP warning about undefined variable when we first load the page without ?edit=ID
+// ========== EDIT MODE FLAG ==========
+// $edit tells the form whether we're adding a new user or editing an existing one:
+//
+// - When $edit = null   → The form is in "Add New User" mode (empty fields).
+// - When $edit = 5, 10, etc. → The form is in "Edit User" mode (fills fields with that user's data).
+//
+// Why initialize it as null?
+// - Prevents PHP "undefined variable" warning when the page loads without ?edit=ID in the URL.
+// - Makes it easy to check: "if ($edit)" means we're editing; "if (!$edit)" means we're adding.
 $edit = null;
 
 // ========== HELPER FUNCTION FOR SAFE HTML OUTPUT ==========
