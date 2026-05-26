@@ -130,19 +130,61 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && !isset($_POST['update_btn']) && !iss
 }
 
 // ========== PART 6: EDIT (GET) ==========
+// This part runs when someone clicks the "Edit" link next to a user.
+// The link sends a GET request with "?edit=ID" in the URL (like "?edit=5").
+//
+// WHY GET? (Not POST)
+// - GET is for READING data (doesn't change anything in database)
+// - POST is for WRITING data (create, update, delete)
+// - Edit just FETCHES existing data to display in the form
+// - The actual UPDATE (saving changes) uses POST later (Part 3)
+//
+// 1. Check if an edit request was made
+//    isset($_GET['edit']) means: "Is there '?edit=something' in the URL?"
+//    This will be true when someone clicks the Edit link
 if (isset($_GET['edit'])) {
+
+    // 2. Get the user ID from the URL and make sure it's a number
+    //    $_GET['edit'] contains the ID from the URL (like "5")
+    //    We use (int) to cast it to an integer for safety
+    //    If someone tries to send text, it becomes 0 (won't match any real user)
+    //    This prevents SQL injection and invalid IDs
     $editId = (int) $_GET['edit'];
 
+    // 3. Prepare the SELECT statement
+    //    We tell the database: "I want to get a user, but I'll tell you which one later."
+    //    The "?" is a placeholder for the ID
+    //    This separates SQL code from data, preventing SQL injection
     $stmt = $conn->prepare("SELECT * FROM users WHERE id = ?");
+
+    // 4. Bind the parameter
+    //    "i" means integer - the database knows to treat $editId as a number
     $stmt->bind_param("i", $editId);
+
+    // 5. Execute the query
+    //    This runs the SELECT command and gets the user data
     $stmt->execute();
+
+    // 6. Get the result set
+    //    execute() only returns true/false. We need get_result() to actually retrieve the data.
     $result = $stmt->get_result();
 
+    // 7. Check if a user was found
+    //    num_rows > 0 means: "Did we find a user with that ID?"
     if ($result->num_rows > 0) {
+
+        // 8. Fetch the user data into $row array
+        //    $row becomes an array like: ['id'=>5, 'name'=>'John', 'email'=>'john@example.com']
         $row = $result->fetch_assoc();
-        $name = $row['name'];
-        $email = $row['email'];
+
+        // 9. Populate the form fields with existing data
+        //    These $name and $email variables will be used in the HTML form's "value" attributes
+        //    This is what makes the form show the user's current information!
+        $name = $row['name'];   // Example: "John Doe" appears in name field
+        $email = $row['email']; // Example: "john@example.com" appears in email field
+
     }
+    // 10. Close the statement (frees resources, prevents memory leaks)
     $stmt->close();
 }
 
