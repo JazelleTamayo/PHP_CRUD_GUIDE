@@ -181,7 +181,7 @@ $result = $conn->query('SELECT * FROM books');
             <td><?= escape_html($row["genre"]); ?></td>
             <td>
                 <a href="?edit=<?= escape_html($row["id"]); ?>">Edit</a>
-                <form method="post" action="">
+                <form method="post" onsubmit="return confirm('Are you sure you want to delete this book?');">
                     <input type="hidden" name="id" value="<?= escape_html($row["id"]); ?>">
                     <input type="submit" name="delete_btn" value="Delete">
                 </form>
