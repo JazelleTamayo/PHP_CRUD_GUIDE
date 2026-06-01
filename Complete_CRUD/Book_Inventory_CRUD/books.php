@@ -29,8 +29,10 @@ if (isset($_POST["update_btn"]) && !isset($_POST["delete_btn"])) {
     } elseif ($year < 1900 || $year > 2026) {
          echo "<script>alert('Year must be between 1900 and 2026!');</script>";
     } else {
+        $year_int = (int) $year;  // ← CAST HERE
+        
         $stmt = $conn->prepare("UPDATE books SET title = ?, author = ?, year = ?, genre = ? WHERE id = ?");
-        $stmt->bind_param("ssisi", $title, $author, $year, $genre, $id);
+        $stmt->bind_param("ssisi", $title, $author, $year_int, $genre, $id);
 
         if ($stmt->execute()) {
             echo "<script>alert('Book Updated Sucessfully!');</script>";
@@ -69,18 +71,14 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && !isset($_POST["update_btn"]) && !iss
     if (empty($title) || empty($author) || empty($year) || empty($genre)) {
         echo "<script>alert('All fields are required!');</script>";
     } elseif (!ctype_digit($year)) {
-        // ========== YEAR VALIDATION ==========
-        // 1. Keep $year as a string (no casting yet)
-        // 2. ctype_digit() checks that every character is 0-9
-        //    - Rejects decimals (2024.5), letters (abc), empty string, spaces
-        // 3. Range check ensures year is between 1900 and 2026
-        // 4. Only after validation passes, cast to int for database
-        echo "<script>alert('Year must be a number!');</script>";
+        echo "<script>alert('Year must be a number and integer!');</script>";
     } elseif ($year < 1900 || $year > 2026) {
         echo "<script>alert('Year must be between 1900 and 2026!');</script>";
     } else {
+        $year_int = (int) $year;  // ← CAST HERE
+        
         $stmt = $conn->prepare('INSERT INTO books (title, author, year, genre) VALUES (?, ?, ?, ?)');
-        $stmt->bind_param("ssis", $title, $author, $year, $genre);
+        $stmt->bind_param("ssis", $title, $author, $year_int, $genre);
 
         if ($stmt->execute()) {
             echo "<script>alert('Book Added Sucessfully!');</script>";
@@ -128,7 +126,7 @@ $result = $conn->query('SELECT * FROM books');
     <h2><?= $edit ? 'Edit Book' : 'Add Book'; ?></h2>
     <form method="post" action="">
         <fieldset>
-            <legend>Student Information</legend>
+            <legend>Book Information</legend>
             <?php if ($edit) { ?>
             <input type="hidden" name="id" value="<?= escape_html($edit); ?>">
             <?php } ?>
@@ -181,7 +179,7 @@ $result = $conn->query('SELECT * FROM books');
             <td><?= escape_html($row["genre"]); ?></td>
             <td>
                 <a href="?edit=<?= escape_html($row["id"]); ?>">Edit</a>
-                <form method="post" onsubmit="return confirm('Are you sure you want to delete this book?');">
+                <form method="post" onsubmit="return confirm('Are you sure you want to delete this Book?');">
                     <input type="hidden" name="id" value="<?= escape_html($row["id"]); ?>">
                     <input type="submit" name="delete_btn" value="Delete">
                 </form>
