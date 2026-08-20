@@ -59,9 +59,7 @@ if ($_SERVER['REQUEST_METHOD'] == "POST") {
             // Executes the query. If successful, it triggers a JavaScript alert box.
             if ($stmt->execute()) {
                 echo "<script>alert('Registered Sucessfully!');</script>";
-
-                // json_encode($_SERVER['PHP_SELF']) safely forces the browser to refresh back to this current file.
-                echo "<script>window.location.href=" . json_encode($_SERVER['PHP_SELF']) . ";</script>";
+                echo "<script>window.location.href=" . json_encode('login.php') . ";</script>";
                 exit;
             } else {
                 // Failsafe in case database constraints (like row sizes or column mismatches) trigger a database error.
