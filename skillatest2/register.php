@@ -6,6 +6,7 @@ session_start();
 // 2. DATABASE CONNECTION
 // Imports your database connection settings ($conn object) from an external file.
 include "db.php";
+$userName = $password = $confirmPassword = $role = "";
 
 // 3. DATA SANITIZATION FUNCTION
 // Trims accidental trailing or leading whitespaces from input text.
