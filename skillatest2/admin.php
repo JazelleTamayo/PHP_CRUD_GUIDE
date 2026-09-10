@@ -13,8 +13,8 @@ $edit = null;
 
 // UPDATE: runs only when the Update button was clicked (not delete)
 if (isset($_POST['update_btn']) && !isset($_POST['delete_btn'])) {
-    $deptID = $_POST['deptID'] ?? "";
-    $deptName = $_POST['deptName'] ?? "";
+    $deptID = $_POST['deptID'];
+    $deptName = $_POST['deptName'];
 
     if ($deptID == "" || empty($deptName)) {
         echo "<script>alert('All fields are Required!');</script>";
@@ -56,8 +56,8 @@ if (isset($_POST['delete_btn']) && !isset($_POST['update_btn'])) {
 
 // ADD: plain POST with no update_btn/delete_btn (Add button has no name="")
 if ($_SERVER['REQUEST_METHOD'] == 'POST' && !isset($_POST['update_btn']) && !isset($_POST['delete_btn'])) {
-    $deptID = $_POST['deptID'] ?? "";
-    $deptName = $_POST['deptName'] ?? "";
+    $deptID = $_POST['deptID'];
+    $deptName = $_POST['deptName'];
 
     if ($deptID == "" || empty($deptName)) {
         echo "<script>alert('All Fields are required!');</script>";
